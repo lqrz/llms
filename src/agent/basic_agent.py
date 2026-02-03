@@ -1,54 +1,37 @@
 """Basic agent."""
 
-from typing import TypedDict, Annotated, List
-from dotenv import load_dotenv
-import os
-from langgraph.graph import add_messages, StateGraph, END
+from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
-from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_openai import ChatOpenAI
+
+from src.agent.state import BasicState
+from src.agent.nodes import (
+    safeguard_request,
+    safeguard_request_reject,
+    generate_response,
+)
+from src.agent.edges import safeguard_request_router
 
 
 checkpointer = InMemorySaver()
-
-load_dotenv()
-
-OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-LLM_MODEL = "gpt-5-nano"
-TEMPERATURE = 0.1
-
-
-LLM = ChatOpenAI(
-    api_key=OPENAI_API_KEY,
-    model=LLM_MODEL,
-    temperature=TEMPERATURE,
-)
-
-
-class BasicState(TypedDict):
-    """BasicState."""
-
-    messages: Annotated[List, add_messages]
-
-
-def generate_response(state: BasicState):
-    """Generate response."""
-    prompt = """Your name is Richard. You are a financial assistant.
-    Whatever is asked to you, you only reply in short sentences; 2 sentences tops."""
-    messages = [
-        SystemMessage(content=prompt),
-        HumanMessage(content=f"Query: {state["messages"]}"),
-    ]
-    response = LLM.invoke(messages)
-    return {"messages": response}
 
 
 def build_basic_graph():
     """Build basic graph."""
     workflow = StateGraph(BasicState)
+    workflow.add_node("safeguard_request", safeguard_request)
+    workflow.add_node("safeguard_request_reject", safeguard_request_reject)
     workflow.add_node("generate_response", generate_response)
+    workflow.add_conditional_edges(
+        "safeguard_request",
+        safeguard_request_router,
+        {
+            True: "generate_response",
+            False: "safeguard_request_reject",
+        },
+    )
+    workflow.add_edge("safeguard_request_reject", END)
     workflow.add_edge("generate_response", END)
-    workflow.set_entry_point("generate_response")
+    workflow.set_entry_point("safeguard_request")
 
     # with short term memory
     return workflow.compile(checkpointer=checkpointer)
