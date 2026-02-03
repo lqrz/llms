@@ -2,9 +2,11 @@
 
 from typing import TypedDict, Annotated, List
 from dotenv import load_dotenv
+import os
 from langgraph.graph import add_messages, StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_openai import ChatOpenAI
 
 from src.models.factory import ModelFactory
 from src.models.providers.provider import Provider
@@ -13,6 +15,17 @@ provider: Provider = ModelFactory.get_llm()
 checkpointer = InMemorySaver()
 
 load_dotenv()
+
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+LLM_MODEL = "gpt-5-nano"
+TEMPERATURE = 0.1
+
+
+LLM = ChatOpenAI(
+    api_key=OPENAI_API_KEY,
+    model=LLM_MODEL,
+    temperature=TEMPERATURE,
+)
 
 
 class BasicState(TypedDict):
@@ -29,7 +42,7 @@ def generate_response(state: BasicState):
         SystemMessage(content=prompt),
         HumanMessage(content=f"Query: {state["messages"]}"),
     ]
-    response = provider.llm.invoke(messages)
+    response = LLM.invoke(messages)
     return {"messages": response}
 
 
