@@ -20,13 +20,15 @@ async def graph_invoke(
 
     state = {
         "user_query": message,
-        "messages": [HumanMessage(content=message)],
+        "messages": [HumanMessage(content=message, additional_kwargs={"public": True})],
     }
 
+    # previous_state = {}
     previous_state = graph.get_state(config=config)
 
     result = await graph.ainvoke(state, config=config)
 
+    # new_state = {}
     new_state = graph.get_state(config=config)
 
     answer = result["answer"]
