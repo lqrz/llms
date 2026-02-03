@@ -7,4 +7,5 @@ from langgraph.graph import add_messages
 class BasicState(TypedDict):
     """BasicState."""
 
+    is_safe_request: bool
     messages: Annotated[List, add_messages]
