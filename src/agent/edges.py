@@ -1,7 +1,9 @@
 """Edges."""
 
+from src.agent.state import BasicState
 
-def safeguard_request_router(state):
+
+def safeguard_request_router(state: BasicState):
     """Safeguard request router."""
 
-    return {}
+    return state["safeguard_result"].is_on_topic

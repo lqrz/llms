@@ -19,7 +19,7 @@ async def graph_invoke(
     }
 
     state = {
-        "original_query": message,
+        "user_query": message,
         "messages": [HumanMessage(content=message)],
     }
 
@@ -29,6 +29,6 @@ async def graph_invoke(
 
     new_state = graph.get_state(config=config)
 
-    answer = result["messages"][-1].content
+    answer = result["answer"]
 
     return answer, result, previous_state, new_state
