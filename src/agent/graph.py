@@ -1,0 +1,34 @@
+"""Graph."""
+
+from langgraph.graph import StateGraph
+from langchain_core.messages import HumanMessage
+from typing import Dict, Any
+
+
+async def graph_invoke(
+    graph: StateGraph,
+    message: str,
+    thread_id: str,
+    metadata: Dict[str, Any],
+):
+    config = {
+        "configurable": {
+            "thread_id": thread_id,
+            **metadata,
+        },
+    }
+
+    state = {
+        "original_query": message,
+        "messages": [HumanMessage(content=message)],
+    }
+
+    previous_state = graph.get_state(config=config)
+
+    result = await graph.ainvoke(state, config=config)
+
+    new_state = graph.get_state(config=config)
+
+    answer = result["messages"][-1].content
+
+    return answer, result, previous_state, new_state
