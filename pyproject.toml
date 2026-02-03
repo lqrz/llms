@@ -3,7 +3,7 @@ name = "llms"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12.0, <3.13"
 dependencies = [
     "langchain>=1.2.7",
     "langchain-openai>=1.1.7",
@@ -17,7 +17,14 @@ backend = [
     "fastapi[standard]>=0.128.0",
 ]
 
+frontend = [
+    "chainlit>=2.9.6",
+    "httpx>=0.28.1",
+    "uvicorn[standard]>=0.40.0",
+]
+
 [dependency-groups]
 dev = [
     "jupyterlab>=4.5.3",
+    "tox>=4.34.1",
 ]

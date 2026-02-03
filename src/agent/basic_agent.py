@@ -8,10 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
-from src.models.factory import ModelFactory
-from src.models.providers.provider import Provider
 
-provider: Provider = ModelFactory.get_llm()
 checkpointer = InMemorySaver()
 
 load_dotenv()
