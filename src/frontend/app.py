@@ -28,7 +28,7 @@ async def main(message: cl.Message):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{API_BASE_URL}/invoke",
+                f"{API_BASE_URL}/agent/invoke",
                 json={
                     "message": user_message,
                     "thread_id": thread_id,
