@@ -55,7 +55,6 @@ def generate_response(state: BasicState):
         ]
     )
     chain = prompt_template | LLM
-    # response: AIMessage = chain.invoke({"user_query": state["user_query"]})
     response: AIMessage = chain.invoke({"history": get_public_history(state=state)})
     response.additional_kwargs = {**response.additional_kwargs, **{"public": True}}
     return {"answer": response.content, "messages": response}
