@@ -26,5 +26,7 @@ frontend = [
 [dependency-groups]
 dev = [
     "jupyterlab>=4.5.3",
+    "pandas>=3.0.0",
+    "scikit-learn>=1.8.0",
     "tox>=4.34.1",
 ]
