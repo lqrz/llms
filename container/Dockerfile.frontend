@@ -1,0 +1,43 @@
+# Frontend Dockerfile - Chainlit service
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies (curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir "uv==0.10.2"
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# 1) Cacheable layer: ONLY third-party deps
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra frontend --no-install-project
+
+# Copy source code
+COPY src/ ./src/
+COPY .chainlit/ ./.chainlit/
+# COPY chainlit.md ./
+
+# 3) Fast layer: install just your project into the existing env
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra frontend
+
+# ---- Runtime-configurable env vars (with defaults) ----
+ENV PORT=8001 \
+    API_BASE_URL=http://localhost:8000 \
+    API_TIMEOUT=300
+
+# Expose frontend port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD sh -c 'curl -fsS "http://localhost:${PORT}/health" || exit 1'
+
+# Run chainlit
+CMD ["sh", "-c", "uv run uvicorn src.frontend.main:app --host 0.0.0.0 --port ${PORT}"]
