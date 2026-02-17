@@ -3,7 +3,7 @@ docker buildx build \
   --builder colima \
   --platform linux/amd64 \
   -f ../container/Dockerfile.backend \
-  -t llms:$(date +%Y%m%d%H%M%S) \
+  -t llms/backend:$(date +%Y%m%d%H%M%S) \
   ..
 
 docker buildx build \
@@ -11,6 +11,6 @@ docker buildx build \
   --builder colima \
   --platform linux/amd64 \
   -f ../container/Dockerfile.frontend \
-  -t llms:$(date +%Y%m%d%H%M%S) \
+  -t llms/frontend:$(date +%Y%m%d%H%M%S) \
   ..
 
