@@ -5,15 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12.0, <3.13"
 dependencies = [
-    "langchain>=1.2.7",
-    "langchain-openai>=1.1.7",
-    "langgraph>=1.0.7",
-    "python-dotenv>=1.2.1",
     "requests>=2.32.5",
 ]
 
 [project.optional-dependencies]
 backend = [
+    "python-dotenv>=1.2.1",
+    "langchain>=1.2.7",
+    "langchain-openai>=1.1.7",
+    "langgraph>=1.0.7",
     "fastapi[standard]>=0.128.0",
 ]
 
