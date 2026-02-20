@@ -1,6 +1,6 @@
 """Edges."""
 
-from src.agent.state import BasicState
+from agent.graph.state import BasicState
 
 
 def safeguard_request_router(state: BasicState):

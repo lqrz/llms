@@ -3,7 +3,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 
-from src.agent.state import BasicState, SafeguardResult
+from agent.graph.state import BasicState, SafeguardResult
 from src.agent.llm import LLM
 
 

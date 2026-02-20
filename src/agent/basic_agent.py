@@ -3,13 +3,13 @@
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 
-from src.agent.state import BasicState
-from src.agent.nodes import (
+from agent.graph.state import BasicState
+from agent.graph.nodes import (
     safeguard_request,
     safeguard_request_reject,
     generate_response,
 )
-from src.agent.edges import safeguard_request_router
+from agent.graph.edges import safeguard_request_router
 
 
 checkpointer = InMemorySaver()

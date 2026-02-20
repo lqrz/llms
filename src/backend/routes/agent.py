@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi import HTTPException, Request
 from typing import Any, Dict
 
-from src.agent.graph import graph_invoke
+from agent.graph.utils import graph_invoke
 from src.backend.schemas.invoke_request import InvokeRequest
 from src.backend.schemas.invoke_response import InvokeResponse
 from src.commons.logger import logger
