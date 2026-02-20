@@ -10,24 +10,14 @@ services:
       context: ..
       dockerfile: container/Dockerfile.backend
     ports:
-      - "8000:8000"
+      - 8000:8000
     env_file:
       - ../.env
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - COHERE_API_KEY=${COHERE_API_KEY}
       - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-OPENAI}
       - DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL:-gpt-4o-mini}
-      - WEAVIATE_URL=http://weaviate:8080
-      - HYBRID_SEARCH_ALPHA=${HYBRID_SEARCH_ALPHA:-0.5}
-      - RETRIEVAL_TOP_K=${RETRIEVAL_TOP_K:-20}
-      - RERANK_TOP_N=${RERANK_TOP_N:-5}
-      - RERANKER_TYPE=${RERANKER_TYPE:-local}
-      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
-      - LANGCHAIN_ENDPOINT=${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
-      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
-      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-finance-ai-agent}
     volumes:
       - ../data:/app/data:ro  # Mount data directory as read-only
     networks:
@@ -39,14 +29,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-  
+
   frontend:
     container_name: llms-frontend
     build:
       context: ..
       dockerfile: container/Dockerfile.frontend
     ports:
-      - "8001:8001"
+      - 8001:8001
+    expose:
+      - 80001
     env_file:
       - ../.env
     environment:
