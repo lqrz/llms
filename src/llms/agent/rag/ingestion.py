@@ -16,7 +16,7 @@ from llama_index.core.schema import Document, TextNode, MetadataMode
 from typing import List
 import re
 
-from src.agent.rag.vector_store import VectorStore
+from llms.agent.rag.vector_store import VectorStore
 
 
 def get_documents(path_input: str) -> List[Document]:

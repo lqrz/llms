@@ -9,11 +9,11 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from qdrant_client.http.exceptions import UnexpectedResponse
-import logging
+
+from llms.commons.logger import logger
 
 # TODO:
 # figure out how vector store receives nodes, then queries, etc.
-# recreate collection?
 
 
 class VectorStore:
@@ -68,7 +68,7 @@ class VectorStore:
     def _delete_collection(self) -> None:
         """Delete existing collection."""
         if self._collection_exists():
-            logging.info(f"Deleting collection {self.collection_name}")
+            _ = logger.info(f"Deleting collection {self.collection_name}")
             _ = self.client.delete_collection(collection_name=self.collection_name)
 
     def is_node_in_index(self, key: str, value: str) -> bool:
@@ -94,14 +94,14 @@ class VectorStore:
             for x in nodes[:]:
                 value: str = x.metadata[key]
                 if self.is_node_in_db(key=key, value=value):
-                    _ = logging.warning(
+                    _ = logger.warning(
                         f"Node with {key}={value} already in vector db. Skipping..."
                     )
                     nodes.remove(x)
                 else:
-                    _ = logging.info(f"Processing Node with {key}={value}")
+                    _ = logger.info(f"Processing Node with {key}={value}")
         else:
-            _ = logging.info(f"Processing all {len(nodes_to_keep)} nodes")
+            _ = logger.info(f"Processing all {len(nodes_to_keep)} nodes")
 
         return nodes_to_keep
 

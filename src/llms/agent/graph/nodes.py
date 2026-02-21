@@ -3,8 +3,8 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 
-from agent.graph.state import BasicState, SafeguardResult
-from src.agent.llm import LLM
+from llms.agent.graph.state import BasicState, SafeguardResult
+from llms.agent.llm import LLM
 
 
 def safeguard_request(state: BasicState):
