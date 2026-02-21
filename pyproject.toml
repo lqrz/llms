@@ -36,3 +36,6 @@ dev = [
     "seaborn>=0.13.2",
     "tox>=4.34.1",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
