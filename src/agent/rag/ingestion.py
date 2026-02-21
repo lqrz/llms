@@ -87,7 +87,19 @@ def modify_document_metadata(
         _ = augment_document_metadata(document=d)
 
 
-def ingest_data(path_input: str, vector_store: VectorStore):
+def ingest_data(
+    path_input_data: str,
+    vector_store_url: str,
+    collection_name: str,
+    is_hybrid: bool,
+    is_recreate_collection: bool,
+    embeddings_model_name: str,
+    chunk_size: int,
+    chunk_overlap: int,
+    text_template: str,
+    keys_to_exclude: List[str],
+    keys_to_include: List[str],
+):
     """Ingest data."""
     documents: List[Document] = get_documents(path_input=path_input_data)
 
@@ -114,6 +126,15 @@ def ingest_data(path_input: str, vector_store: VectorStore):
 
     # transform documents
     nodes: List[TextNode] = pipeline.run(documents=documents)
+
+    _ = VectorStore(
+        url=vector_store_url,
+        collection_name=collection_name,
+        nodes=nodes,
+        embeddings_model=embeddings_model,
+        is_hybrid=is_hybrid,
+        is_recreate_collection=is_recreate_collection,
+    )
 
 
 if __name__ == "__main__":
