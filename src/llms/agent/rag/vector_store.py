@@ -1,6 +1,6 @@
 """Vector store."""
 
-from typing import List, Tuple
+from typing import List
 from llama_index.core.schema import TextNode, NodeWithScore
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, StorageContext
@@ -24,6 +24,7 @@ class VectorStore:
         url: str,
         collection_name: str,
         nodes: List[TextNode],
+        document_id_key: str,
         embeddings_model: HuggingFaceEmbedding,
         is_recreate_collection: bool,
         is_hybrid: bool = True,
@@ -32,30 +33,37 @@ class VectorStore:
         self.url: str = url
         self.collection_name: str = collection_name
         self.embeddings_model: HuggingFaceEmbedding = embeddings_model
-        self.client, self.vector_store = self._instantiate_vector_store(
+        self.client: QdrantClient = self._instantiate_client(url=url)
+        self.vector_store: QdrantVectorStore = self._instantiate_vector_store(
             collection_name=self.collection_name,
             is_hybrid=is_hybrid,
             is_recreate=is_recreate_collection,
         )
-        self.index: VectorStoreIndex = self._build_index(nodes=nodes)
+        self.index: VectorStoreIndex = self._build_index(
+            nodes=nodes, key=document_id_key
+        )
+
+    @staticmethod
+    def _instantiate_client(url: str) -> QdrantClient:
+        """Instantiate vector db client."""
+        client = QdrantClient(url=url)
+        return client
 
     def _instantiate_vector_store(
         self,
-        url: str,
         collection_name: str,
         is_hybrid: bool,
         is_recreate: bool,
-    ) -> Tuple[QdrantClient, QdrantVectorStore]:
+    ) -> QdrantVectorStore:
         """Instantiate vector store."""
-        client = QdrantClient(url=url)
         if is_recreate:
             _ = self._delete_collection()
         vector_store = QdrantVectorStore(
-            client=client,
+            client=self.client,
             collection_name=collection_name,
             enable_hybrid=is_hybrid,  # enable hybrid search
         )
-        return client, vector_store
+        return vector_store
 
     def _collection_exists(self) -> bool:
         """Check if collection exists in the vector db."""
