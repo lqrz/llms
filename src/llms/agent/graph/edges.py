@@ -1,6 +1,6 @@
 """Edges."""
 
-from src.agent.state import BasicState
+from llms.agent.graph.state import BasicState
 
 
 def safeguard_request_router(state: BasicState):

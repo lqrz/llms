@@ -7,10 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from src.agent.basic_agent import build_basic_graph
-from src.commons.logger import logger
-from src.backend.routes.agent import router as agent_router
-from src.backend.routes.server import router as health_router
+from llms.agent.basic_agent import build_basic_graph
+from llms.commons.logger import logger
+from llms.backend.routes.agent import router as agent_router
+from llms.backend.routes.server import router as health_router
 
 
 @asynccontextmanager

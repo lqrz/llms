@@ -8,7 +8,7 @@ _ = load_dotenv()
 
 
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-LLM_MODEL = "gpt-5-nano"
+LLM_MODEL = "gpt-4o-mini"
 TEMPERATURE = 0.1
 
 

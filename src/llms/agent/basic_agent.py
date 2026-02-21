@@ -3,19 +3,19 @@
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 
-from src.agent.state import BasicState
-from src.agent.nodes import (
+from llms.agent.graph.state import BasicState
+from llms.agent.graph.nodes import (
     safeguard_request,
     safeguard_request_reject,
     generate_response,
 )
-from src.agent.edges import safeguard_request_router
+from llms.agent.graph.edges import safeguard_request_router
 
 
 checkpointer = InMemorySaver()
 
 
-def build_basic_graph():
+def build_basic_graph(is_use_short_term_memory: bool = True):
     """Build basic graph."""
     workflow = StateGraph(BasicState)
     workflow.add_node("safeguard_request", safeguard_request)
@@ -33,8 +33,7 @@ def build_basic_graph():
     workflow.add_edge("generate_response", END)
     workflow.set_entry_point("safeguard_request")
 
-    # with short term memory
-    return workflow.compile(checkpointer=checkpointer)
+    # short term memory
+    checkpointer = checkpointer if is_use_short_term_memory else None
 
-    # without short term memory
-    # return workflow.compile()
+    return workflow.compile(checkpointer=checkpointer)
