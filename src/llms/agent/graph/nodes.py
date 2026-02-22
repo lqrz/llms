@@ -1,10 +1,17 @@
 """Nodes."""
 
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    AIMessagePromptTemplate,
+)
 from langchain_core.messages import AIMessage
+from llama_index.core.schema import NodeWithScore
+from typing import List
 
 from llms.agent.graph.state import BasicState, SafeguardResult
 from llms.agent.llm import LLM
+from llms.agent.rag.vector_store import VectorStore
 
 
 def safeguard_request(state: BasicState):
@@ -56,5 +63,44 @@ def generate_response(state: BasicState):
     )
     chain = prompt_template | LLM
     response: AIMessage = chain.invoke({"history": get_public_history(state=state)})
+    response.additional_kwargs = {**response.additional_kwargs, **{"public": True}}
+    return {"answer": response.content, "messages": response}
+
+
+def retrieve(state: BasicState):
+    """Retrieve."""
+    nodes:List[NodeWithScore] = retriever.run_hybrid_search(
+        query=state["user_query"],
+        top_k_each: int,
+        top_k_final: int,
+        alpha: float,
+        metadata_filters: List[MetadataFilters],
+    )  # TODO: pass retriever & run search
+    return {
+        "retrieved_nodes": nodes,
+    }
+
+
+def generate_response_with_retrieval(state: BasicState):
+    """Generate response with retrieval."""
+    prompt = """Your name is Richard. You are a financial assistant.
+    Use the provided context.
+    If the context is insufficient, say so.
+    Cite sources like [1], [2]."""
+    prompt_template = ChatPromptTemplate(
+        [
+            ("system", prompt),
+            MessagesPlaceholder("history"),
+            AIMessagePromptTemplate("context"),  # TODO: should this be an AI msg?
+        ]
+    )
+    chain = prompt_template | LLM
+    context: str = VectorStore.format_nodes_for_prompt(nodes=state["retrieved_nodes"])
+    response: AIMessage = chain.invoke(
+        {
+            "history": get_public_history(state=state),
+            "context": context,
+        }
+    )
     response.additional_kwargs = {**response.additional_kwargs, **{"public": True}}
     return {"answer": response.content, "messages": response}

@@ -3,6 +3,7 @@
 from typing import TypedDict, Annotated, List
 from langgraph.graph import add_messages
 from pydantic import BaseModel, Field
+from llama_index.core.schema import NodeWithScore
 
 
 class SafeguardResult(BaseModel):
@@ -24,4 +25,5 @@ class BasicState(TypedDict):
     user_query: str
     safeguard_result: SafeguardResult
     messages: Annotated[List, add_messages]
+    retrieved_nodes: List[NodeWithScore]
     answer: str
