@@ -12,7 +12,7 @@ from llms.agent.graph.nodes import (
 from llms.agent.graph.edges import safeguard_request_router
 
 
-checkpointer = InMemorySaver()
+CHECKPOINTER = InMemorySaver()
 
 
 def build_basic_graph(is_use_short_term_memory: bool = True):
@@ -34,6 +34,6 @@ def build_basic_graph(is_use_short_term_memory: bool = True):
     workflow.set_entry_point("safeguard_request")
 
     # short term memory
-    checkpointer = checkpointer if is_use_short_term_memory else None
+    checkpointer = CHECKPOINTER if is_use_short_term_memory else None
 
     return workflow.compile(checkpointer=checkpointer)
