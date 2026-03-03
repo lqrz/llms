@@ -5,16 +5,16 @@ from langchain_core.prompts import (
     MessagesPlaceholder,
     AIMessagePromptTemplate,
 )
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from llama_index.core.schema import NodeWithScore
-from typing import List
+from typing import Dict, Any, List
 
 from llms.agent.graph.state import BasicState, SafeguardResult
 from llms.agent.llm import LLM
 from llms.agent.rag.vector_store import VectorStore
 
 
-def safeguard_request(state: BasicState):
+def safeguard_request(state: BasicState) -> Dict[str, Any]:
     """Apply safeguards."""
     prompt = """You are a financial assistant.
     You only reply to financial related questions. Nothing else.
@@ -34,7 +34,7 @@ def safeguard_request(state: BasicState):
     }
 
 
-def safeguard_request_reject(state: BasicState):
+def safeguard_request_reject(state: BasicState) -> Dict[str, Any]:
     response: str = (
         """I can help with financial topics only. Can you rephrase your question to be finance-related?"""
     )
@@ -44,14 +44,14 @@ def safeguard_request_reject(state: BasicState):
     }
 
 
-def get_public_history(state: BasicState):
+def get_public_history(state: BasicState) -> List[BaseMessage]:
     """Get public history."""
     return list(
         filter(lambda x: x.additional_kwargs.get("public", False), state["messages"])
     )
 
 
-def generate_response(state: BasicState):
+def generate_response(state: BasicState) -> Dict[str, Any]:
     """Generate response."""
     prompt = """Your name is Richard. You are a financial assistant.
     Whatever is asked to you, you only reply in short sentences; 2 sentences tops."""
@@ -67,21 +67,22 @@ def generate_response(state: BasicState):
     return {"answer": response.content, "messages": response}
 
 
-def retrieve(state: BasicState):
+def retrieve(state: BasicState) -> Dict[str, Any]:
     """Retrieve."""
-    nodes:List[NodeWithScore] = retriever.run_hybrid_search(
-        query=state["user_query"],
-        top_k_each: int,
-        top_k_final: int,
-        alpha: float,
-        metadata_filters: List[MetadataFilters],
-    )  # TODO: pass retriever & run search
-    return {
-        "retrieved_nodes": nodes,
-    }
+    # nodes:List[NodeWithScore] = retriever.run_hybrid_search(
+    #     query=state["user_query"],
+    #     top_k_each: int,
+    #     top_k_final: int,
+    #     alpha: float,
+    #     metadata_filters: List[MetadataFilters],
+    # )  # TODO: pass retriever & run search
+    # return {
+    #     "retrieved_nodes": nodes,
+    # }
+    pass
 
 
-def generate_response_with_retrieval(state: BasicState):
+def generate_response_with_retrieval(state: BasicState) -> Dict[str, Any]:
     """Generate response with retrieval."""
     prompt = """Your name is Richard. You are a financial assistant.
     Use the provided context.
