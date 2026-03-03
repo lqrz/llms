@@ -12,7 +12,7 @@ class EvaluationSample:
     id: int
     query: str
     source_docs: List[str]
-    question_type: str
+    query_type: str
     source_chunk_type: str
     answer: str
 

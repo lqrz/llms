@@ -4,16 +4,21 @@ from llama_index.core.evaluation import (
     FaithfulnessEvaluator,
     RelevancyEvaluator,
     CorrectnessEvaluator,
+    EvaluationResult,
 )
 from llama_index.core.evaluation import BatchEvalRunner
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import StateSnapshot
 import asyncio
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Any
 from collections import defaultdict
 from glob import glob
 from pathlib import Path
 import pandas as pd
 
 from llms.agent.evaluation.evaluation_sample import EvaluationSample
+from llms.agent.graph.utils import graph_invoke
+from llms.agent.graph.state import BasicState
 
 
 class Evaluator:
@@ -44,41 +49,62 @@ class Evaluator:
         """Get dataset from Pandas df."""
         rows = df.to_dict("records")
         dataset: List[EvaluationSample] = [
-            EvaluationSample.from_row(r, self.company_files) for r in rows
+            EvaluationSample.from_row(r, self._company_files) for r in rows
         ]
         return dataset
 
+    @staticmethod
+    async def _f_graph_invoke(graph, query, id) -> Dict[str, Any]:
+        """Graph invoke."""
+        _, result, _, _ = await graph_invoke(
+            message=query, thread_id=id, graph=graph, metadata={}
+        )
+        return result
+
     async def evaluate_sample(
         self,
+        graph: CompiledStateGraph,
         sample: EvaluationSample,
-        f_graph_invoke: Callable,
     ):
         """Evaluate dataset sample."""
+        id: int = sample.id
         query: str = sample.query
         answer: str = sample.answer
-        source_docs: List[str] = sample.source_docs
-        question_type: str = sample.question_type
+        # source_docs: List[str] = sample.source_docs
+        # query_type: str = sample.query_type
 
         # invoke graph
-        reponse = f_graph_invoke(query)
+        response: Dict[str, Any] = await self._f_graph_invoke(
+            graph=graph, query=query, id=id
+        )
 
         # evaluate rag triad
-        result_relevancy = await self._evaluator_relevancy.aevaluate(
-            query=query,
-            contexts=contexts,
-        ).score
-
-        result_faithfulness = await self._evaluator_faithfulness.aevaluate(
-            query=query,
-            response=reponse["answer"],
-            contexts=contexts,
+        result_correctness: EvaluationResult = (
+            await self._evaluator_correctness.aevaluate(
+                query=query,
+                response=response["answer"],
+                reference=answer,
+            )
         )
 
-        result_correctness = await self._evaluator_correctness.aevaluate(
-            query=query,
-            response=reponse["answer"],
-            reference=answer,
-        )
+        result_relevancy = EvaluationResult(score=None, feedback=None)
+        result_faithfulness = EvaluationResult(score=None, feedback=None)
+
+        if "rag_contexts" in response:
+            result_relevancy: EvaluationResult = (
+                await self._evaluator_relevancy.aevaluate(
+                    query=query,
+                    contexts=response.get("rag_contexts", None),
+                )
+            )
+
+            result_faithfulness: EvaluationResult = (
+                await self._evaluator_faithfulness.aevaluate(
+                    query=query,
+                    response=response["answer"],
+                    contexts=response.get("rag_contexts", None),
+                )
+            )
 
         # return
         result = {
@@ -100,7 +126,7 @@ class Evaluator:
     async def evaluate_dataset(
         self,
         df: pd.DataFrame,
-        f_graph_invoke: Callable,
+        graph: CompiledStateGraph,
         concurrency: int = 20,
     ):
         """Evaluate dataset sample."""
@@ -108,7 +134,25 @@ class Evaluator:
 
         async def wrapped(sample: EvaluationSample):
             async with semaphore:
-                return await self.evaluate_sample(sample, f_graph_invoke)
+                return await self.evaluate_sample(graph=graph, sample=sample)
 
         dataset: List[EvaluationSample] = self._get_dataset_from_df(df=df)
         return await asyncio.gather(*[wrapped(sample) for sample in dataset])
+
+
+if __name__ == "__main__":
+
+    from llama_index.llms.openai import OpenAI
+    from llms.agent.basic_agent import build_basic_graph
+
+    llm_model_name: str = "gpt-4.1-mini"
+    path_input_data: str = "data/sec_filings"
+    llm_model = OpenAI(model=llm_model_name)
+    evaluator = Evaluator(llm_model=llm_model, path_input_data=path_input_data)
+    path_input_dataset: str = "data/evaluation/qna_data_mini.csv"
+    df = pd.read_csv(open(path_input_dataset))
+    dataset = evaluator._get_dataset_from_df(df=df)
+    sample = dataset[0]
+    graph = build_basic_graph()
+    result = asyncio.run(evaluator.evaluate_sample(graph=graph, sample=sample))
+    result
