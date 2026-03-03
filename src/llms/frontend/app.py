@@ -3,8 +3,9 @@
 import os
 import chainlit as cl
 import httpx
+import logging
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:9000")
 API_TIMEOUT = float(os.getenv("API_TIMEOUT", "300"))  # 5 min default
 
 
@@ -24,11 +25,12 @@ async def main(message: cl.Message):
     """Process user messages by calling the FastAPI /invoke endpoint."""
     user_message = message.content
     thread_id = cl.user_session.get("thread_id")
+    url: str = f"{API_BASE_URL}/agent/invoke"
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{API_BASE_URL}/agent/invoke",
+                url,
                 json={
                     "message": user_message,
                     "thread_id": thread_id,
@@ -42,13 +44,16 @@ async def main(message: cl.Message):
         await cl.Message(content=result["answer"]).send()
 
     except httpx.HTTPStatusError as e:
+        logging.error(e)
         error_detail = e.response.text if e.response else "Unknown error"
         await cl.Message(
             content=f"Error from backend: {e.response.status_code} - {error_detail}"
         ).send()
-    except httpx.RequestError:
+    except httpx.RequestError as e:
+        logging.error(e)
         await cl.Message(
-            content=f"Could not connect to backend service at {API_BASE_URL}. Please ensure the API is running."
+            content=f"Could not connect to backend service at {url}. Error: {e}."
         ).send()
     except Exception as e:
+        logging.error(e)
         await cl.Message(content=f"An unexpected error occurred: {str(e)}").send()
