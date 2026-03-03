@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
         yield
     except Exception as e:
         logger.error(f"Could not build graph: {e}")
+        raise e
     finally:
         app.state.graph = None
 

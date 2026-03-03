@@ -162,6 +162,24 @@ class VectorStore:
         results: List[NodeWithScore] = retriever.retrieve(query)
         return results
 
+    @classmethod
+    def format_nodes_for_prompt(cls, nodes: List[NodeWithScore]) -> str:
+        """Format nodes for prompt."""
+        chunks: List[str] = []
+        for i, n in enumerate(nodes, 1):
+            text: str = n.node.get_content(metadata_mode="llm")  # or just n.node.text
+            src: str = (
+                n.node.metadata.get("file_name")
+                or n.node.metadata.get("source")
+                or "unknown"
+            )
+            score: float = getattr(n, "score", None)
+            chunks.append(f"[{i}] source={src} score={score}\n{text}")
+
+        context: str = "\n\n".join(chunks)
+
+        return context
+
 
 if __name__ == "__main__":
 

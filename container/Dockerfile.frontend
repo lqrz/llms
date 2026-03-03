@@ -28,16 +28,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --extra frontend
 
 # ---- Runtime-configurable env vars (with defaults) ----
-ENV PORT=8001 \
-    API_BASE_URL=http://localhost:8000 \
+ENV PORT=9001 \
+    API_BASE_URL=http://localhost:9000 \
     API_TIMEOUT=300
 
 # Expose frontend port
-EXPOSE 8001
+EXPOSE 9001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD sh -c 'curl -fsS "http://localhost:${PORT}/health" || exit 1'
 
 # Run chainlit
-CMD ["sh", "-c", "uv run uvicorn src.frontend.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uv run uvicorn src.llms.frontend.main:app --host 0.0.0.0 --port ${PORT}"]

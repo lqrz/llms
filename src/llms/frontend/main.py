@@ -12,4 +12,4 @@ async def health():
 
 
 # Mount Chainlit UI + websocket under /
-mount_chainlit(app=app, target="src/frontend/app.py", path="/")
+mount_chainlit(app=app, target="src/llms/frontend/app.py", path="/")
