@@ -31,6 +31,7 @@ async def invoke(req: InvokeRequest, request: Request) -> InvokeResponse:
         raise HTTPException(status_code=400, detail="Thread id must be of type str.")
 
     lock = request.app.state.thread_locks[thread_id]
+    embeddings_model = request.app.state.embeddings_model
 
     if lock.locked():
         _ = logger.error(
@@ -41,7 +42,9 @@ async def invoke(req: InvokeRequest, request: Request) -> InvokeResponse:
     async with lock:
         _ = logger.info("Calling graph factory")
         graph = GraphFactory.instantiate_graph(
-            workflow_type=workflow_type, **workflow_kwargs
+            workflow_type=workflow_type,
+            embeddings_model=embeddings_model,
+            **workflow_kwargs,
         )
 
         _ = logger.info("Invoking graph")

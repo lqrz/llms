@@ -51,7 +51,7 @@ def build_rag_graph(
     top_k_each: int,
     top_k_final: int,
     alpha: float,
-    embeddings_model_name: str = "BAAI/bge-small-en-v1.5",
+    embeddings_model: HuggingFaceEmbedding,
     is_hybrid_search: bool = True,
     metadata_filters: List = [],
     is_use_short_term_memory: bool = True,
@@ -59,9 +59,6 @@ def build_rag_graph(
 ):
     """Build rag graph."""
     workflow = StateGraph(RagState)
-
-    logger.info(f"Instantiating embeddings model {embeddings_model_name}")
-    embeddings_model = HuggingFaceEmbedding(model_name=embeddings_model_name)
 
     vector_db_url: str = os.getenv("VECTOR_DB_URL")
 
