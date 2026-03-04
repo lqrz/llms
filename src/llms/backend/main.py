@@ -2,12 +2,10 @@
 
 import asyncio
 from collections import defaultdict
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from llms.agent.basic_agent import build_basic_graph
 from llms.commons.logger import logger
 from llms.backend.routes.agent import router as agent_router
 from llms.backend.routes.server import router as health_router
@@ -18,7 +16,6 @@ async def lifespan(app: FastAPI):
     try:
         # app.state.graph = build_graph()
         logger.info("Building basic graph inside lifespan.")
-        app.state.graph = build_basic_graph()
         app.state.thread_locks = defaultdict(asyncio.Lock)
         yield
     except Exception as e:

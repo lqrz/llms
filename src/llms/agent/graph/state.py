@@ -25,5 +25,14 @@ class BasicState(TypedDict):
     user_query: str
     safeguard_result: SafeguardResult
     messages: Annotated[List, add_messages]
+    answer: str
+
+
+class RagState(TypedDict):
+    """RagState."""
+
+    user_query: str
+    safeguard_result: SafeguardResult
+    messages: Annotated[List, add_messages]
     retrieved_nodes: List[NodeWithScore]
     answer: str
