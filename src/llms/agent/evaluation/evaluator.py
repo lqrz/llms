@@ -143,7 +143,7 @@ class Evaluator:
 if __name__ == "__main__":
 
     from llama_index.llms.openai import OpenAI
-    from llms.agent.basic_agent import build_basic_graph
+    from llms.agent.graph.graph_builds import build_basic_graph
 
     llm_model_name: str = "gpt-4.1-mini"
     path_input_data: str = "data/sec_filings"
