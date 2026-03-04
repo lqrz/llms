@@ -116,27 +116,29 @@ def ingest_data(
         model_name=embeddings_model_name,
     )
 
+    # instantiate the vector store wrapper
+    vector_store = VectorStore(
+        url=vector_store_url,
+        collection_name=collection_name,
+        embeddings_model=embeddings_model,
+        is_hybrid=is_hybrid,
+        is_recreate_collection=is_recreate_collection,
+    )
+
     # instantiate transformation pipeline
     pipeline = IngestionPipeline(
         transformations=[
             SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap),
             # TitleExtractor(),
-            embeddings_model,
-        ]
+            # embeddings_model,  # will not set the embeddings_model cause its in the VectorStoreIndex already.
+        ],
+        # vector_store=vector_store,  # pass the vector store so the pipeline also upserts
     )
 
-    # transform documents
+    # transform documents and ingest
     nodes: List[TextNode] = pipeline.run(documents=documents)
 
-    _ = VectorStore(
-        url=vector_store_url,
-        collection_name=collection_name,
-        nodes=nodes,
-        document_id_key=document_id_key,
-        embeddings_model=embeddings_model,
-        is_hybrid=is_hybrid,
-        is_recreate_collection=is_recreate_collection,
-    )
+    _ = vector_store.insert_nodes(nodes=nodes, key=document_id_key)
 
 
 if __name__ == "__main__":

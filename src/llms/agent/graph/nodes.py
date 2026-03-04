@@ -3,13 +3,12 @@
 from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
-    AIMessagePromptTemplate,
 )
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from llama_index.core.schema import NodeWithScore
 from typing import Dict, Any, List
 
-from llms.agent.graph.state import BasicState, SafeguardResult
+from llms.agent.graph.state import BasicState, SafeguardResult, RagState
 from llms.agent.llm import LLM
 from llms.agent.rag.vector_store import VectorStore
 
@@ -67,41 +66,55 @@ def generate_response(state: BasicState) -> Dict[str, Any]:
     return {"answer": response.content, "messages": response}
 
 
-def retrieve(state: BasicState) -> Dict[str, Any]:
-    """Retrieve."""
-    # nodes:List[NodeWithScore] = retriever.run_hybrid_search(
-    #     query=state["user_query"],
-    #     top_k_each: int,
-    #     top_k_final: int,
-    #     alpha: float,
-    #     metadata_filters: List[MetadataFilters],
-    # )  # TODO: pass retriever & run search
-    # return {
-    #     "retrieved_nodes": nodes,
-    # }
-    pass
+def make_node_retrieve(
+    vector_store: VectorStore,
+    top_k_each: int,
+    top_k_final: int,
+    alpha: float,
+    metadata_filters: List = [],
+):
+    """Retrieve node factory."""
+
+    def retrieve(state: RagState) -> Dict[str, Any]:
+        """Retrieve."""
+        nodes: List[NodeWithScore] = vector_store.run_hybrid_search(
+            query=state["user_query"],
+            top_k_each=top_k_each,
+            top_k_final=top_k_final,
+            alpha=alpha,
+            metadata_filters=metadata_filters,
+        )
+        return {
+            "retrieved_nodes": nodes,
+        }
+
+    return retrieve
 
 
-def generate_response_with_retrieval(state: BasicState) -> Dict[str, Any]:
+def generate_response_with_retrieval(state: RagState) -> Dict[str, Any]:
     """Generate response with retrieval."""
-    prompt = """Your name is Richard. You are a financial assistant.
-    Use the provided context.
+    system_prompt = """Your name is Richard. You are a financial assistant.
+    Use the provided context to reply to the user query.
     If the context is insufficient, say so.
-    Cite sources like [1], [2]."""
+    Cite sources like [1], [2], ..."""
+    context_prompt = """Context from the knowledge base:
+    {context}
+    """
     prompt_template = ChatPromptTemplate(
         [
-            ("system", prompt),
+            ("system", system_prompt),
             MessagesPlaceholder("history"),
-            AIMessagePromptTemplate("context"),  # TODO: should this be an AI msg?
+            ("system", context_prompt),  # best for grounding.
+            ("human", "{query}"),
         ]
     )
     chain = prompt_template | LLM
     context: str = VectorStore.format_nodes_for_prompt(nodes=state["retrieved_nodes"])
+    public_history: List[BaseMessage] = get_public_history(state=state)
+    history: List[BaseMessage] = public_history[:-1]
+    query: HumanMessage = public_history[-1]
     response: AIMessage = chain.invoke(
-        {
-            "history": get_public_history(state=state),
-            "context": context,
-        }
+        {"history": history, "context": context, "query": query}
     )
     response.additional_kwargs = {**response.additional_kwargs, **{"public": True}}
     return {"answer": response.content, "messages": response}

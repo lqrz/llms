@@ -12,9 +12,6 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 
 from llms.commons.logger import logger
 
-# TODO:
-# figure out how vector store receives nodes, then queries, etc.
-
 
 class VectorStore:
     """VectorStore."""
@@ -23,8 +20,6 @@ class VectorStore:
         self,
         url: str,
         collection_name: str,
-        nodes: List[TextNode],
-        document_id_key: str,
         embeddings_model: HuggingFaceEmbedding,
         is_recreate_collection: bool,
         is_hybrid: bool = True,
@@ -39,9 +34,11 @@ class VectorStore:
             is_hybrid=is_hybrid,
             is_recreate=is_recreate_collection,
         )
-        self.index: VectorStoreIndex = self._build_index(
-            nodes=nodes, key=document_id_key
+        self.vector_store_index: VectorStoreIndex = (
+            self._instantiate_vector_store_index()
         )
+
+    # --- SETUP
 
     @staticmethod
     def _instantiate_client(url: str) -> QdrantClient:
@@ -79,7 +76,7 @@ class VectorStore:
             _ = logger.info(f"Deleting collection {self.collection_name}")
             _ = self.client.delete_collection(collection_name=self.collection_name)
 
-    def is_node_in_index(self, key: str, value: str) -> bool:
+    def _is_node_in_index(self, key: str, value: str) -> bool:
         """Check if node is already in the vector db."""
         scroll_filter = Filter(
             must=[FieldCondition(key=key, match=MatchValue(value=value))]
@@ -101,7 +98,7 @@ class VectorStore:
         if self._collection_exists():
             for x in nodes[:]:
                 value: str = x.metadata[key]
-                if self.is_node_in_db(key=key, value=value):
+                if self._is_node_in_index(key=key, value=value):
                     _ = logger.warning(
                         f"Node with {key}={value} already in vector db. Skipping..."
                     )
@@ -113,18 +110,31 @@ class VectorStore:
 
         return nodes_to_keep
 
-    def _build_index(self, nodes: List[TextNode], key: str) -> VectorStoreIndex:
-        """Build index."""
+    def _instantiate_vector_store_index(self) -> VectorStoreIndex:
+        """Build vector store index."""
+        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
+        # this does not recreate the index, just builds the wrapper.
+        vector_store_index = VectorStoreIndex.from_vector_store(
+            vector_store=self.vector_store,
+            storage_context=storage_context,
+            embed_model=self.embeddings_model,
+        )
+        return vector_store_index
+
+    def insert_nodes(self, nodes: List[TextNode], key: str) -> None:
+        """Insert nodes in vector db via vector store index."""
+        logger.info("Filtering nodes to insert")
         nodes_to_insert: List[TextNode] = self._filter_existing_nodes(
             nodes=nodes, key=key
         )
-        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
-        index = VectorStoreIndex(nodes_to_insert, storage_context=storage_context)
-        return index
+        logger.info(f"Inserting {len(nodes_to_insert)} nodes in the db")
+        self.vector_store_index.insert_nodes(nodes=nodes_to_insert)
+
+    # --- SEARCH
 
     def run_semantic_search(self, query: str, top_k: int) -> List[NodeWithScore]:
         """Run semantic search."""
-        retriever = self.index.as_retriever(
+        retriever = self.vector_store_index.as_retriever(
             embed_model=self.embeddings_model,
             vector_store_query_mode=VectorStoreQueryMode.DEFAULT,  # semantic
             similarity_top_k=top_k,
@@ -134,7 +144,7 @@ class VectorStore:
 
     def run_keyword_search(self, query: str, top_k: int) -> List[NodeWithScore]:
         """Run keyword search."""
-        retriever = self.index.as_retriever(
+        retriever = self.vector_store_index.as_retriever(
             embed_model=self.embeddings_model,
             vector_store_query_mode=VectorStoreQueryMode.SPARSE,  # keyword
             similarity_top_k=top_k,
@@ -151,7 +161,19 @@ class VectorStore:
         metadata_filters: List[MetadataFilters],
     ) -> List[NodeWithScore]:
         """Run hybrid search."""
-        retriever = self.index.as_retriever(
+
+        if not isinstance(top_k_each, int):
+            raise Exception(f"top_k_each must be of type int. Got {type(top_k_each)}")
+
+        if not isinstance(top_k_final, int):
+            raise Exception(f"top_k_final must be of type int. Got {type(top_k_final)}")
+
+        if not isinstance(alpha, float) or alpha < 0 or alpha > 1:
+            raise Exception(
+                f"alpha must be a float between 0 and 1. Got {type(alpha)} {alpha}"
+            )
+
+        retriever = self.vector_store_index.as_retriever(
             embed_model=self.embeddings_model,
             vector_store_query_mode=VectorStoreQueryMode.HYBRID,  # semantic
             similarity_top_k=top_k_final,  # controls the final number of returned nodes (after fusion).

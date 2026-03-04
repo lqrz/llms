@@ -3,10 +3,12 @@
 from fastapi import APIRouter
 from fastapi import HTTPException, Request
 from typing import Any, Dict
+import os
 
 from llms.agent.graph.utils import graph_invoke
 from llms.backend.schemas.invoke_request import InvokeRequest
 from llms.backend.schemas.invoke_response import InvokeResponse
+from llms.agent.graph.graph_factory import GraphFactory
 from llms.commons.logger import logger
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -18,9 +20,11 @@ async def invoke(req: InvokeRequest, request: Request) -> InvokeResponse:
     message: str = req.message
     metadata: Dict[str, Any] = req.metadata
     thread_id: str = req.thread_id
+    workflow_type: str = req.workflow_type
+    workflow_kwargs: Dict[str, Any] = dict(req.workflow_kwargs)
 
     logger.info(
-        f"Received request with message={message} thread_id={thread_id} metadata={metadata}"
+        f"Received request with workflow_type={workflow_type} workflow_kwargs={workflow_kwargs} message={message} thread_id={thread_id} metadata={metadata}"
     )
 
     if thread_id is None or not isinstance(thread_id, str):
@@ -35,9 +39,14 @@ async def invoke(req: InvokeRequest, request: Request) -> InvokeResponse:
         raise HTTPException(status_code=400, detail="Thread is busy.")
 
     async with lock:
+        _ = logger.info("Calling graph factory")
+        graph = GraphFactory.instantiate_graph(
+            workflow_type=workflow_type, **workflow_kwargs
+        )
+
         _ = logger.info("Invoking graph")
-        answer, raw_result, previous_state, new_state = await graph_invoke(
-            graph=request.app.state.graph,
+        answer, _, previous_state, new_state = await graph_invoke(
+            graph=graph,
             message=message,
             thread_id=thread_id,
             metadata=metadata,
