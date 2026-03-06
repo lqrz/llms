@@ -2,21 +2,25 @@
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
+from langchain_openai.chat_models import ChatOpenAI
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import List
 import os
 
-from llms.agent.graph.state import BasicState, RagState
+from llms.agent.graph.state import BasicState, RagState, RetrievalPlan
 from llms.agent.graph.nodes import (
     safeguard_request,
     safeguard_request_reject,
     generate_response,
     make_node_retrieve,
     generate_response_with_retrieval,
+    make_node_plan_retrieval,
+    build_filters_from_plan_node,
 )
 from llms.agent.graph.edges import safeguard_request_router
 from llms.agent.rag.vector_store import VectorStore
 from llms.commons.logger import logger
+from llms.agent.llm import LLM_MODEL
 
 
 CHECKPOINTER = InMemorySaver()
@@ -52,8 +56,7 @@ def build_rag_graph(
     top_k_final: int,
     alpha: float,
     embeddings_model: HuggingFaceEmbedding,
-    is_hybrid_search: bool = False,
-    metadata_filters: List = [],
+    is_hybrid_search: bool = True,
     is_use_short_term_memory: bool = True,
     **kwargs,
 ):
@@ -82,7 +85,6 @@ def build_rag_graph(
         "retrieve",
         make_node_retrieve(
             vector_store=vector_store,
-            metadata_filters=metadata_filters,
             top_k_each=top_k_each,
             top_k_final=top_k_final,
             alpha=alpha,
@@ -117,8 +119,7 @@ def build_metadata_rag_graph(
     top_k_final: int,
     alpha: float,
     embeddings_model: HuggingFaceEmbedding,
-    is_hybrid_search: bool = False,
-    metadata_filters: List = [],
+    is_hybrid_search: bool = True,
     is_use_short_term_memory: bool = True,
     **kwargs,
 ):
@@ -141,13 +142,21 @@ def build_metadata_rag_graph(
         is_hybrid=is_hybrid_search,
     )
 
+    llm_retrieval_plan = ChatOpenAI(
+        model=LLM_MODEL,
+        temperature=0,
+    ).with_structured_output(RetrievalPlan)
+
     workflow.add_node("safeguard_request", safeguard_request)
     workflow.add_node("safeguard_request_reject", safeguard_request_reject)
+    workflow.add_node(
+        "plan_retrieval", make_node_plan_retrieval(llm=llm_retrieval_plan)
+    )
+    workflow.add_node("build_filters_from_plan_node", build_filters_from_plan_node)
     workflow.add_node(
         "retrieve",
         make_node_retrieve(
             vector_store=vector_store,
-            metadata_filters=metadata_filters,
             top_k_each=top_k_each,
             top_k_final=top_k_final,
             alpha=alpha,
@@ -159,11 +168,13 @@ def build_metadata_rag_graph(
         "safeguard_request",
         safeguard_request_router,
         {
-            True: "retrieve",
+            True: "plan_retrieval",
             False: "safeguard_request_reject",
         },
     )
 
+    workflow.add_edge("plan_retrieval", "build_filters_from_plan_node")
+    workflow.add_edge("build_filters_from_plan_node", "retrieve")
     workflow.add_edge("retrieve", "generate_response")
     workflow.add_edge("safeguard_request_reject", END)
     workflow.add_edge("generate_response", END)
