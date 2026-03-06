@@ -47,7 +47,7 @@ async def start():
             Select(
                 id="COLLECTION_NAME",
                 label="Vector db collection",
-                values=["data"],
+                values=["vlm_independent"],
                 initial_index=0,
             ),
             Select(

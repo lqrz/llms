@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, Literal
 class WorkflowKwargs(BaseModel):
     """Workflow kwargs."""
 
-    collection_name: str
+    collection_name: Literal["vlm_independent"]
     alpha: float
     top_k_each: int
     top_k_final: int

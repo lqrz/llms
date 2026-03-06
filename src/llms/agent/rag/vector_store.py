@@ -83,7 +83,7 @@ class VectorStore:
         )
 
         _, point_id = self.client.scroll(
-            collection_name=collection_name,
+            collection_name=self.collection_name,
             scroll_filter=scroll_filter,
             limit=1,
             with_payload=False,
