@@ -16,6 +16,6 @@ class WorkflowKwargs(BaseModel):
 class InvokeRequest(BaseModel):
     message: str
     thread_id: Optional[str] = None
-    workflow_type: Literal["basic", "rag"]
+    workflow_type: Literal["basic", "rag", "metadata_rag"]
     workflow_kwargs: WorkflowKwargs
     metadata: Dict[str, Any] = Field(default_factory=dict)

@@ -41,7 +41,7 @@ async def start():
             Select(
                 id="WORKFLOW_TYPE",
                 label="Workflow",
-                values=["basic", "rag"],
+                values=["basic", "rag", "metadata_rag"],
                 initial_index=0,
             ),
             Select(
